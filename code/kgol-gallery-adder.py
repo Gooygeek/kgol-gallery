@@ -30,17 +30,26 @@ else:
     VERBOSE_LOGGING = False
 
 
-def generate_random_name():
+def generate_random_name(length):
     """
+    Generates a random sequence of uppercase letters and numbers of desired length.
 
+    Inputs:
+        lenght [Int] - The desired length of the string
+
+    Outputs:
+        randomName [String] - A random string of letters and numbers
     """
-    randomName = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(int(RANDOM_NAME_LENGTH)))
+    randomName = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(int(length)))
     return randomName
 
 
 def get_new_images():
     """
+    Gets a list of filenames (including the path) from the designated watch folder.
 
+    Outputs:
+        newImages['Contents'][1:] [List][String] - A list of filenames (including the path).
     """
     newImages = s3.list_objects_v2(Bucket=BUCKET, EncodingType='url', Prefix=WATCH_KEY_PREFIX)
     return newImages['Contents'][1:]
@@ -48,28 +57,36 @@ def get_new_images():
 
 def parse_name_to_tags(image):
     """
+    Gets a list of tags based on the filename of te image being evaulated.
+        All tags to be added should be seperated by spaces.
+        Assumes that the first word is an identifier and will be ingored.
+        Assumes the passed filename contains the path.
 
+    Inputs:
+        image [String] - The name of the image being added.
+
+    Outputs:
+            tags [List][String] - A list of tags taken from the filename.
+            image[dotIndex:] [String] - The images file extention (e.g. '.png').
     """
-    curCharIndex = len(image)
-    curChar = ''
-    slashIndex = 0
-    dotIndex = 0
-    notAllFound = True
+    curCharIndex, curChar = len(image), ''
+    slashIndex, dotIndex, notAllFound = 0, 0, True
     while notAllFound:
-        curCharIndex = curCharIndex - 1
-        curChar = image[curCharIndex]
+        curCharIndex, curChar = curCharIndex - 1, image[curCharIndex]
         if curChar == '.':
             dotIndex = curCharIndex
         if curChar == '/':
-            slashIndex = curCharIndex
-            notAllFound = False
+            slashIndex, notAllFound = curCharIndex, False
     tags = image[slashIndex+1:dotIndex].split('+')[1:]
     return [tags, image[dotIndex:]]
 
 
 def get_current_tags():
     """
+    Opens the list of currently recored dbTags
 
+    Outputs:
+        curTags [List][String] - The tags that are currently known
     """
     res = s3.get_object(Bucket=BUCKET, Key=LIST_OF_TAGS)['Body']
     curTags = ast.literal_eval(str(res.read(), 'utf-8'))
@@ -79,7 +96,14 @@ def get_current_tags():
 
 def update_tags_list(curTags, newTags):
     """
+    Merge the current list of tags with the ones associated with the current image
 
+    Inputs:
+        curTags [List][String] - The current list of tags
+        newTags [List][String] - The list of tags to be merged into curTags
+
+    Outputs:
+        curTags [List] - The merged list of tags
     """
     curTags = curTags + list(set(newTags)-set(curTags))
     return curTags
@@ -87,7 +111,11 @@ def update_tags_list(curTags, newTags):
 
 def add_to_db(randomName, tags):
     """
+    Add the tags lookup line to the DB for the evaluated image
 
+    Input:
+        randomName [String] - The new name of the image to be saved as
+        tags [List][String] - A list of the tags associated with this image
     """
     dbTags = {'Id':{'S':str(randomName)}}
     for tag in tags:
@@ -100,7 +128,11 @@ def add_to_db(randomName, tags):
 
 def add_to_s3(image, randomName):
     """
+    Adds the current image being evaluated to the main gallery folder
 
+    Inputs:
+        image [String] - Key prefix of the image being evaluated
+        randomName [String] - Name to save the image as
     """
 
     return
@@ -108,7 +140,10 @@ def add_to_s3(image, randomName):
 
 def save_updated_tags_list(curTags):
     """
+    Saves the list of tags that have been updated back into s3
 
+    Input:
+        curTags [List][String] - The list of tags to save
     """
     s3.put_object(Bucket=BUCKET, Key=LIST_OF_TAGS, Body=str(curTags))
     return
@@ -116,17 +151,24 @@ def save_updated_tags_list(curTags):
 
 def lambda_handler(event, context):
     """
+    Function called when lambda is run, calls main execution flow
 
+    Inputs:
+        event [Object] - Lambda call information
+        context [Object] - Current execution infomration
     """
-    newImages = [image['Key'] for image in get_new_images()]
-    curTags = get_current_tags()
+    try:
+        newImages = [image['Key'] for image in get_new_images()]
+        curTags = get_current_tags()
 
-    for image in newImages:
-        [tags, fileExtention] = parse_name_to_tags(image)
-        curTags = update_tags_list(curTags, tags)
-        randomName = ''.join([generate_random_name(), fileExtention])
-        add_to_db(randomName, tags)
-        # add_to_s3(image, randomName)
-    save_updated_tags_list(curTags)
+        for image in newImages:
+            [tags, fileExtention] = parse_name_to_tags(image)
+            curTags = update_tags_list(curTags, tags)
+            randomName = ''.join([generate_random_name(RANDOM_NAME_LENGTH), fileExtention])
+            add_to_db(randomName, tags)
+            # add_to_s3(image, randomName)
+        save_updated_tags_list(curTags)
 
-    return 'Error Free Execution'
+        return 'Error Free Execution'
+    except:
+        print("PANIC, PANIC: "+sys.exc_info())
