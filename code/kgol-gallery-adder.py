@@ -40,6 +40,7 @@ def generate_random_name(length):
     Outputs:
         randomName [String] - A random string of letters and numbers
     """
+    # Converts a list of random choices created by list comprehension into a string
     randomName = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(int(length)))
     return randomName
 
@@ -57,7 +58,7 @@ def get_new_images():
 
 def parse_name_to_tags(image):
     """
-    Gets a list of tags based on the filename of te image being evaulated.
+    Gets a list of tags based on the filename of the image being evaulated.
         All tags to be added should be seperated by spaces.
         Assumes that the first word is an identifier and will be ingored.
         Assumes the passed filename contains the path.
@@ -69,14 +70,27 @@ def parse_name_to_tags(image):
             tags [List][String] - A list of tags taken from the filename.
             image[dotIndex:] [String] - The images file extention (e.g. '.png').
     """
+    # Initiate some variables used in the loop and keeping track of special characters
     curCharIndex, curChar = len(image), ''
     slashIndex, dotIndex, notAllFound = 0, 0, True
+
+    # Unitl the start of the file name is found (end of the path)
     while notAllFound:
-        curCharIndex, curChar = curCharIndex - 1, image[curCharIndex]
+        # Go back by one character
+        curCharIndex = curCharIndex - 1
+        curChar = image[curCharIndex]
+
+        # If the character is a dot, then the start of the file extention must have been found
         if curChar == '.':
             dotIndex = curCharIndex
+
+        # If a forwards slash is found, then the end of the path (start of the filename) must have been found
         if curChar == '/':
             slashIndex, notAllFound = curCharIndex, False
+
+    # Convert the string of tags from the file name is to a list of tags via a splice.
+    # Note that the spaces are converted to '+' in theis format so the tags are seperated by '+'s
+    #    hence the string needs to be split based on that
     tags = image[slashIndex+1:dotIndex].split('+')[1:]
     return [tags, image[dotIndex:]]
 
@@ -88,8 +102,13 @@ def get_current_tags():
     Outputs:
         curTags [List][String] - The tags that are currently known
     """
+    # Note that we only need the body of the response
     res = s3.get_object(Bucket=BUCKET, Key=LIST_OF_TAGS)['Body']
+
+    # Interpret the string representation of a list returned from S3 into a proper list
+    #     after first converting from a byte representation of a srting to utf-8
     curTags = ast.literal_eval(str(res.read(), 'utf-8'))
+    # The http streaming body should be closed for good practice
     res.close()
     return curTags
 
@@ -105,6 +124,7 @@ def update_tags_list(curTags, newTags):
     Outputs:
         curTags [List] - The merged list of tags
     """
+    # Merge the lists by using sets to remove duplicates and then add the new items to the old list.
     curTags = curTags + list(set(newTags)-set(curTags))
     return curTags
 
@@ -134,7 +154,11 @@ def add_to_s3(image, randomName):
         image [String] - Key prefix of the image being evaluated
         randomName [String] - Name to save the image as
     """
-
+    s3.copy_object(
+        Bucket = BUCKET,
+        Key = ''.join([PUT_KEY_PREFIX, '/', randomName]),
+        CopySource = {'Bucket':BUCKET,'Key': image}
+    )
     return
 
 
@@ -164,9 +188,11 @@ def lambda_handler(event, context):
         for image in newImages:
             [tags, fileExtention] = parse_name_to_tags(image)
             curTags = update_tags_list(curTags, tags)
+            # randomName becomes a combination of a random string and the images filetype extention
             randomName = ''.join([generate_random_name(RANDOM_NAME_LENGTH), fileExtention])
             add_to_db(randomName, tags)
             # add_to_s3(image, randomName)
+
         save_updated_tags_list(curTags)
 
         return 'Error Free Execution'
