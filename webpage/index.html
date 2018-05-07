@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Image Gallery Design</title>
+    <title>MLP Image Gallery</title>
     <link rel="stylesheet" type="text/css" href="generator-files/css/generator.css">
     <link href="generator-files/css/lightbox.css" rel="stylesheet">
     <script src="generator-files/js/lightbox-plus-jquery.js"></script>
@@ -10,14 +10,28 @@
 
 <body>
     <div class="main">
-        <div style="padding:5px;">
-            <div class="slide-container">
-                <input type="range" min="100" max="500" value="250" class="slider" id="myRange">
-                <div id="slider-value"></div>
+        <div class="search-container">
+            <div class="search">
+                <form action="/search">
+                    SEARCH: <br>
+                    <input type="text" name="search-string" class="search-input">
+                </form>
+                <br>
+                <br>
+                <br>
+                <br> Seletable tag list comming soon
+                <br>
+                <br>
+                <br>
             </div>
         </div>
 
-
+        <div class="slide-container-container">
+            <div class="slide-container">
+                <input type="range" min="100" max="1200" value="250" class="slider" id="myRange">
+                <div id="slider-value"></div>
+            </div>
+        </div>
         <div id="gallery-container">
             <div class="gallery" id="gallery">
                 <script src="generator-files/js/generator-gallery-load.js"></script>

@@ -5,56 +5,43 @@
 body {
     background: url("../images/background.png");
     margin: 0;
+    padding: 8px;
 }
 
 .main {
     background-color: #ADD8E6;
-    margin: 8px;
     border-radius: 25px;
+    box-shadow: 2px 3px 20px 3px #000000;
+    width: 100%;
 }
 
-h1 {
-    text-align: center;
-    color: forestgreen;
-    margin: 30px 0 50px;
+.search-container {
+    padding: 1em;
+    background-color: #edbc64;
+    border-radius: 25px 25px 10px 10px;
 }
 
-#gallery-container{
+.search {
     margin: auto;
-    width: 90%;
-    height: 100%;
 }
 
-.gallery {
-    margin: auto;
-    width: calc(var(--gallery-width)*1px);
+.search-input {
+    width: 100%;
 }
 
-.gallery img {
-    width: calc(var(--square-size)*1px);
-    height: calc(var(--square-size)*1px);
-    transition: 0.3s;
-    object-fit: cover;
-}
-
-.gallery img:hover {
-    transform: scale(1.2);
-    filter: brightness(1.1);
-}
-
-.gallery .image {
-    display: inline-block;
-    align-self: center;
-    margin: 5px;
-    width: calc(var(--square-size)*1px);
-    height: calc(var(--square-size)*1px);
+.slide-container-container {
+    left: 0;
+    right: 0;
+    padding: 5px;
+    margin: 0;
+    margin-bottom: 15px;
+    background-color: #FFFFFF;
+    border-radius: 10px;
 }
 
 .slide-container {
-    width: 90%; /* Width of the outside container */
+    width: 90%;
     margin: auto;
-    padding: 5px;
-    margin-bottom: 15px;
 }
 
 /* The slider itself */
@@ -93,4 +80,36 @@ h1 {
     border: 0;
     background: url('../images/contrasticon.png'); /* background */
     cursor: pointer; /* Cursor on hover */
+}
+
+#gallery-container{
+    margin: auto;
+    width: 90%;
+    height: 100%;
+}
+
+.gallery {
+    margin: auto;
+    width: calc(var(--gallery-width)*1px);
+}
+
+.gallery img {
+    width: calc(var(--square-size)*1px);
+    height: calc(var(--square-size)*1px);
+    transition: 0.1s;
+    object-fit: cover;
+}
+
+.gallery img:hover {
+    transition: 0.3s;
+    transform: scale(1.2);
+    filter: brightness(1.1);
+}
+
+.gallery .image {
+    display: inline-block;
+    align-self: center;
+    margin: 5px;
+    width: calc(var(--square-size)*1px);
+    height: calc(var(--square-size)*1px);
 }
