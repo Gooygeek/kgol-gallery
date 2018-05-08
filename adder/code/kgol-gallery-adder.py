@@ -178,7 +178,6 @@ def move_to_s3(image, randomName):
     return
 
 
-
 def save_updated_tags_list(curTags):
     """
     Saves the list of tags that have been updated back into s3
