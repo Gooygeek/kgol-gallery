@@ -3,6 +3,7 @@ import json
 import boto3
 
 BUCKET = os.environ["BUCKET"]
+TABLE = os.environ["BUCKET"]
 GET_KEY_PREFIX = os.environ["GET_KEY_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
 if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')):
@@ -26,7 +27,14 @@ def parse_tags_from_event(event):
         pTags [List] - The tags that an image MUST have
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
-    return
+    pTags, nTags = [], []
+    allTags = event['tags'].split(' ')
+    for tag in allTags:
+        if tag[0] == "-":
+            nTags.append(tag[:])
+        else:
+            pTags.append(tag[:])
+    return [pTags, nTags]
 
 
 def get_images_from_tags(pTags, nTags):
@@ -38,7 +46,19 @@ def get_images_from_tags(pTags, nTags):
         pTags [List] - The tags that an image MUST have
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
-    return
+
+    filterExpressionString = ""
+    for pTag in pTags:
+        filterExpressionString += "attribute_exists(%s) and " % pTag
+    for nTag in nTags:
+        filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
+    filterExpressionString = filterExpressionString[:-4]
+    print(conditionExpressionString)
+    # images = dynamodb.scan(
+    #     TableName=TABLE,
+    #     FilterExpression = conditionExpressionString
+    # )['Body']
+    return images
 
 
 def generate_page(images):
@@ -71,10 +91,10 @@ def lambda_handler(event, context):
     [pTags, nTags] = parse_tags_from_event(event)
 
     # get image names from dynamodb
-    images = get_images_from_tags(pTags, nTags)
+    # images = get_images_from_tags(pTags, nTags)
 
     # generate a page
-    page = generate_page(images)
+    # page = generate_page(images)
 
     # serve the page
 
