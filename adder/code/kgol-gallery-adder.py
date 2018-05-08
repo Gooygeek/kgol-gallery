@@ -13,6 +13,7 @@ import json
 import random
 import string
 import ast
+import sys
 import boto3
 s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
@@ -142,11 +143,11 @@ def add_to_db(randomName, tags):
         dbTags[tag]={'S':'Y'}
 
     dynamodb.put_item(TableName=TABLE, Item=dbTags)
-    print("Added: "+randomName+", with tags:"+str(tags)+", to DB.")
+    if VERBOSE_LOGGING : print("Added: "+randomName+", with tags:"+str(tags)+", to DB.")
     return
 
 
-def add_to_s3(image, randomName):
+def move_to_s3(image, randomName):
     """
     Adds the current image being evaluated to the main gallery folder
 
@@ -154,12 +155,28 @@ def add_to_s3(image, randomName):
         image [String] - Key prefix of the image being evaluated
         randomName [String] - Name to save the image as
     """
-    s3.copy_object(
-        Bucket = BUCKET,
-        Key = ''.join([PUT_KEY_PREFIX, '/', randomName]),
-        CopySource = {'Bucket':BUCKET,'Key': image}
-    )
+    try:
+        oldImageKey = image.replace('+', ' ')
+        s3.copy_object(
+            Bucket = BUCKET,
+            Key = '/'.join([PUT_KEY_PREFIX, randomName]),
+            CopySource = {'Bucket':BUCKET,'Key': oldImageKey}
+        )
+    except:
+        if VERBOSE_LOGGING : print("Unable to copy image")
+        return
+    try:
+        s3.delete_object(Bucket = BUCKET, Key=oldImageKey)
+        return
+    except:
+        if VERBOSE_LOGGING : print("Unable to delete image, rolling back...")
+        try:
+            s3.delete_object(Bucket = BUCKET, Key='/'.join([PUT_KEY_PREFIX, randomName])
+            if VERBOSE_LOGGING : print("Done")
+        except:
+            if VERBOSE_LOGGING : print("Unable to rollback")
     return
+
 
 
 def save_updated_tags_list(curTags):
@@ -181,20 +198,18 @@ def lambda_handler(event, context):
         event [Object] - Lambda call information
         context [Object] - Current execution infomration
     """
-    try:
-        newImages = [image['Key'] for image in get_new_images()]
-        curTags = get_current_tags()
 
-        for image in newImages:
-            [tags, fileExtention] = parse_name_to_tags(image)
-            curTags = update_tags_list(curTags, tags)
-            # randomName becomes a combination of a random string and the images filetype extention
-            randomName = ''.join([generate_random_name(RANDOM_NAME_LENGTH), fileExtention])
-            add_to_db(randomName, tags)
-            # add_to_s3(image, randomName)
+    newImages = [image['Key'] for image in get_new_images()]
+    curTags = get_current_tags()
 
-        save_updated_tags_list(curTags)
+    for image in newImages:
+        [tags, fileExtention] = parse_name_to_tags(image)
+        curTags = update_tags_list(curTags, tags)
+        # randomName becomes a combination of a random string and the images filetype extention
+        randomName = ''.join([generate_random_name(RANDOM_NAME_LENGTH), fileExtention])
+        add_to_db(randomName, tags)
+        move_to_s3(image, randomName)
 
-        return 'Error Free Execution'
-    except:
-        print("PANIC, PANIC: "+sys.exc_info())
+    save_updated_tags_list(curTags)
+
+    return 'Error Free Execution'
