@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MLP Image Gallery</title>
+    <link rel="stylesheet" type="text/css" href="http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com/code/css/generator.css">
+    <link href="http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com/code/css/lightbox.css" rel="stylesheet">
+    <script src="http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com/code/js/lightbox-plus-jquery.js"></script>
+</head>
+
+<body>
+    <div class="main">
+        <div class="search-container">
+            <div class="search">
+                <form action="/search">
+                    SEARCH: <br>
+                    <input type="text" name="search-string" class="search-input">
+                </form>
+                <br>
+                <br>
+                <br>
+                <br> Seletable tag list comming soon
+                <br>
+                <br>
+                <br>
+            </div>
+        </div>
+
+        <div class="slide-container-container">
+            <div class="slide-container">
+                <input type="range" min="100" max="1200" value="250" class="slider" id="myRange">
+                <div id="slider-value"></div>
+            </div>
+        </div>
+        <div id="gallery-container">
+            <div class="gallery" id="gallery">
+                <script src="http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com/code/js/generator-gallery-load.js"></script>

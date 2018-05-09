@@ -4,7 +4,8 @@ import boto3
 
 BUCKET = os.environ["BUCKET"]
 TABLE = os.environ["TABLE"]
-GET_KEY_PREFIX = os.environ["GET_KEY_PREFIX"]
+IMAGE_KEY_PREFIX = os.environ["IMAGE_KEY_PREFIX"]
+URL_PREFIX = os.environ["URL_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
 VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
 
@@ -70,14 +71,14 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    UPPER_HTML = ""
+    UPPER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join(['code', 'UPPER_HTML']))['Body'].read(), 'utf-8')
 
-    LOWER_HTML = ""
+    LOWER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join(['code', 'LOWER_HTML']))['Body'].read(), 'utf-8')
 
     MID_HTML = ""
 
     for image in images:
-        MID_HTML += "<div class='image'><a href=''"+BUCKET+"/"+image+"'data-lightbox='MLP'><img src='"+BUCKET+"/"+image+"'></a></div>"
+        MID_HTML += "<div class='image'><a href='"+'/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image])+"'data-lightbox='MLP'><img src='"+'/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image])+"'></a></div>"
 
     page = UPPER_HTML + MID_HTML + LOWER_HTML
     return page
@@ -98,4 +99,4 @@ def lambda_handler(event, context):
     # serve the page
     print(page)
 
-    return 'Hello from Lambda'
+    return 'Error Free Execution'
