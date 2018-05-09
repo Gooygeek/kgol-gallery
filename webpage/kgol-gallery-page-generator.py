@@ -6,11 +6,7 @@ BUCKET = os.environ["BUCKET"]
 TABLE = os.environ["BUCKET"]
 GET_KEY_PREFIX = os.environ["GET_KEY_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
-if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')):
-    VERBOSE_LOGGING = True
-else:
-    VERBOSE_LOGGING = False
-
+VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
 
 s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
@@ -53,11 +49,11 @@ def get_images_from_tags(pTags, nTags):
     for nTag in nTags:
         filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
     filterExpressionString = filterExpressionString[:-4]
-    print(conditionExpressionString)
-    # images = dynamodb.scan(
-    #     TableName=TABLE,
-    #     FilterExpression = conditionExpressionString
-    # )['Body']
+    print(filterExpressionString)
+    images = dynamodb.scan(
+        TableName=TABLE,
+        FilterExpression = filterExpressionString
+    )['Body']
     return images
 
 
@@ -71,9 +67,9 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    # UPPER_HTML =
+    UPPER_HTML = ""
 
-    # LOWER_HTML =
+    LOWER_HTML = ""
 
     MID_HTML = ""
 
@@ -91,12 +87,12 @@ def lambda_handler(event, context):
     [pTags, nTags] = parse_tags_from_event(event)
 
     # get image names from dynamodb
-    # images = get_images_from_tags(pTags, nTags)
+    images = get_images_from_tags(pTags, nTags)
 
     # generate a page
-    # page = generate_page(images)
+    page = generate_page(images)
 
     # serve the page
-
+    print(page)
 
     return 'Hello from Lambda'
