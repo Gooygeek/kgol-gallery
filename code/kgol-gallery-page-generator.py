@@ -5,6 +5,7 @@ import boto3
 BUCKET = os.environ["BUCKET"]
 TABLE = os.environ["TABLE"]
 IMAGE_KEY_PREFIX = os.environ["IMAGE_KEY_PREFIX"]
+AUX_FILES_PREFIX = os.environ['AUX_FILES_PREFIX']
 URL_PREFIX = os.environ["URL_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
 VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
@@ -71,9 +72,9 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    UPPER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join(['code', 'UPPER_HTML']))['Body'].read(), 'utf-8')
+    UPPER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, 'UPPER_HTML']))['Body'].read(), 'utf-8')
 
-    LOWER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join(['code', 'LOWER_HTML']))['Body'].read(), 'utf-8')
+    LOWER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, 'LOWER_HTML']))['Body'].read(), 'utf-8')
 
     MID_HTML = ""
 

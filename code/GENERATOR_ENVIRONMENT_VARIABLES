@@ -1,0 +1,6 @@
+BUCKET             = kgol-image-gallery
+IMAGE_KEY_PRFIX    = images
+AUX_FILES_PREFIX   = aux-files
+URL_PREFIX         = http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com
+TABLE              = kgol-gallery-tags
+VERBOSE_LOGGING    = True

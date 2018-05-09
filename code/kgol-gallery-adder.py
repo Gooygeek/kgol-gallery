@@ -22,13 +22,11 @@ BUCKET = os.environ['BUCKET']
 WATCH_KEY_PREFIX = os.environ['WATCH_KEY_PREFIX']
 PUT_KEY_PREFIX = os.environ['PUT_KEY_PREFIX']
 RANDOM_NAME_LENGTH = os.environ['RANDOM_NAME_LENGTH']
+AUX_FILES_PREFIX = os.environ['AUX_FILES_PREFIX']
 TABLE = os.environ['TABLE']
 LIST_OF_TAGS = os.environ['LIST_OF_TAGS']
 VERBOSE_LOGGING = os.environ['VERBOSE_LOGGING']
-if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true')):
-    VERBOSE_LOGGING = True
-else:
-    VERBOSE_LOGGING = False
+VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
 
 
 def generate_random_name(length):
@@ -104,7 +102,7 @@ def get_current_tags():
         curTags [List][String] - The tags that are currently known
     """
     # Note that we only need the body of the response
-    res = s3.get_object(Bucket=BUCKET, Key=LIST_OF_TAGS)['Body']
+    res = s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]))['Body']
 
     # Interpret the string representation of a list returned from S3 into a proper list
     #     after first converting from a byte representation of a srting to utf-8
@@ -185,7 +183,7 @@ def save_updated_tags_list(curTags):
     Input:
         curTags [List][String] - The list of tags to save
     """
-    s3.put_object(Bucket=BUCKET, Key=LIST_OF_TAGS, Body=str(curTags))
+    s3.put_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]), Body=str(curTags))
     return
 
 
