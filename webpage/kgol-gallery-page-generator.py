@@ -3,7 +3,7 @@ import json
 import boto3
 
 BUCKET = os.environ["BUCKET"]
-TABLE = os.environ["BUCKET"]
+TABLE = os.environ["TABLE"]
 GET_KEY_PREFIX = os.environ["GET_KEY_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
 VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
@@ -49,11 +49,14 @@ def get_images_from_tags(pTags, nTags):
     for nTag in nTags:
         filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
     filterExpressionString = filterExpressionString[:-4]
-    print(filterExpressionString)
-    images = dynamodb.scan(
+    imagesResponse = dynamodb.scan(
         TableName=TABLE,
         FilterExpression = filterExpressionString
-    )['Body']
+    )['Items']
+
+    images = []
+    for item in imagesResponse:
+        images.append(item['Id']['S'])
     return images
 
 
@@ -74,7 +77,7 @@ def generate_page(images):
     MID_HTML = ""
 
     for image in images:
-        MID_HTML =+ "<div class='image'><a href=''"+BUCKET+"/"+image+"'data-lightbox='MLP'><img src='"+BUCKET+"/"+image+"'></a></div>"
+        MID_HTML += "<div class='image'><a href=''"+BUCKET+"/"+image+"'data-lightbox='MLP'><img src='"+BUCKET+"/"+image+"'></a></div>"
 
     page = UPPER_HTML + MID_HTML + LOWER_HTML
     return page
