@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 import boto3  #pylint: disable=F0401
 
 BUCKET = os.environ["BUCKET"]
@@ -7,6 +8,7 @@ TABLE = os.environ["TABLE"]
 IMAGE_KEY_PREFIX = os.environ["IMAGE_KEY_PREFIX"]
 AUX_FILES_PREFIX = os.environ['AUX_FILES_PREFIX']
 URL_PREFIX = os.environ["URL_PREFIX"]
+LIST_OF_TAGS = os.environ['LIST_OF_TAGS']
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
 VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True')
                            or (VERBOSE_LOGGING == 'true')
@@ -28,12 +30,13 @@ def parse_tags_from_event(event):
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
     pTags, nTags = [], []
-    allTags = event['tags'].split(' ')
+    allTags = event['tags'].split('%2C%20')
     for tag in allTags:
-        if tag[0] == "-":
-            nTags.append(tag[:])
-        else:
-            pTags.append(tag[:])
+        if tag != '':
+            if tag[0] == '-':
+                nTags.append(tag[:])
+            else:
+                pTags.append(tag[:])
     return [pTags, nTags]
 
 
@@ -53,8 +56,11 @@ def get_images_from_tags(pTags, nTags):
     for nTag in nTags:
         filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
     filterExpressionString = filterExpressionString[:-4]
-    imagesResponse = dynamodb.scan(
-        TableName=TABLE, FilterExpression=filterExpressionString)['Items']
+    if filterExpressionString != '':
+        imagesResponse = dynamodb.scan(
+            TableName=TABLE, FilterExpression=filterExpressionString)['Items']
+    else:
+        imagesResponse = dynamodb.scan(TableName=TABLE)['Items']
 
     images = []
     for item in imagesResponse:
@@ -72,25 +78,39 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    UPPER_HTML = str(
+    START_TO_TAGS = str(
         s3.get_object(
             Bucket=BUCKET, Key='/'.join(
-                [AUX_FILES_PREFIX, 'UPPER_HTML']))['Body'].read(), 'utf-8')
+                [AUX_FILES_PREFIX, 'START_TO_TAGS']))['Body'].read(), 'utf-8')
 
-    LOWER_HTML = str(
+    TAGS_HTML = ""
+
+    encodedTagsList = s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]))['Body']
+
+    tagList = ast.literal_eval(str(encodedTagsList.read(), 'utf-8'))
+
+    for tag in tagList:
+        TAGS_HTML += "<div class='tag-item'>" + str(tag) + "</div>"
+
+    TAGS_TO_IMAGES = str(
         s3.get_object(
             Bucket=BUCKET, Key='/'.join(
-                [AUX_FILES_PREFIX, 'LOWER_HTML']))['Body'].read(), 'utf-8')
+                [AUX_FILES_PREFIX, 'TAGS_TO_IMAGES']))['Body'].read(), 'utf-8')
 
-    MID_HTML = ""
+    IMAGES_HTML = ""
 
     for image in images:
-        MID_HTML += "<div class='image'><a href='" + '/'.join([
+        IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
             URL_PREFIX, IMAGE_KEY_PREFIX, image
         ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
             [URL_PREFIX, IMAGE_KEY_PREFIX, image]) + "'></a></div>"
 
-    page = UPPER_HTML + MID_HTML + LOWER_HTML
+    IMAGES_TO_END = str(
+        s3.get_object(
+            Bucket=BUCKET, Key='/'.join(
+                [AUX_FILES_PREFIX, 'IMAGES_TO_END']))['Body'].read(), 'utf-8')
+
+    page = START_TO_TAGS + TAGS_HTML + TAGS_TO_IMAGES + IMAGES_HTML + IMAGES_TO_END
     return page
 
 
@@ -107,6 +127,9 @@ def lambda_handler(event, context):
     page = generate_page(images)
 
     # serve the page
-    print(page)
+    s3.put_object(Bucket = 'kgol-image-gallery',
+        Key = 'page.html',
+        Body = str(page)
+    )
 
     return 'Error Free Execution'

@@ -17,21 +17,3 @@
                     <input type="text" name="search-string" class="search-input">
                 </form>
                 <br>
-                <br>
-                <br>
-                <br> Seletable tag list comming soon
-                <br>
-                <br>
-                <br>
-            </div>
-        </div>
-
-        <div class="slide-container-container">
-            <div class="slide-container">
-                <input type="range" min="100" max="1200" value="250" class="slider" id="myRange">
-                <div id="slider-value"></div>
-            </div>
-        </div>
-        <div id="gallery-container">
-            <div class="gallery" id="gallery">
-                <script src="http://kgol-image-gallery.s3-website-ap-southeast-2.amazonaws.com/aux-files/js/generator-gallery-load.js"></script>
