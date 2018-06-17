@@ -1,6 +1,6 @@
 import os
 import json
-import boto3
+import boto3  #pylint: disable=F0401
 
 BUCKET = os.environ["BUCKET"]
 TABLE = os.environ["TABLE"]
@@ -8,7 +8,9 @@ IMAGE_KEY_PREFIX = os.environ["IMAGE_KEY_PREFIX"]
 AUX_FILES_PREFIX = os.environ['AUX_FILES_PREFIX']
 URL_PREFIX = os.environ["URL_PREFIX"]
 VERBOSE_LOGGING = os.environ["VERBOSE_LOGGING"]
-VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True') or (VERBOSE_LOGGING == 'true') or (VERBOSE_LOGGING == 'TRUE')) else False
+VERBOSE_LOGGING = True if ((VERBOSE_LOGGING == 'True')
+                           or (VERBOSE_LOGGING == 'true')
+                           or (VERBOSE_LOGGING == 'TRUE')) else False
 
 s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
@@ -52,9 +54,7 @@ def get_images_from_tags(pTags, nTags):
         filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
     filterExpressionString = filterExpressionString[:-4]
     imagesResponse = dynamodb.scan(
-        TableName=TABLE,
-        FilterExpression = filterExpressionString
-    )['Items']
+        TableName=TABLE, FilterExpression=filterExpressionString)['Items']
 
     images = []
     for item in imagesResponse:
@@ -72,14 +72,23 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    UPPER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, 'UPPER_HTML']))['Body'].read(), 'utf-8')
+    UPPER_HTML = str(
+        s3.get_object(
+            Bucket=BUCKET, Key='/'.join(
+                [AUX_FILES_PREFIX, 'UPPER_HTML']))['Body'].read(), 'utf-8')
 
-    LOWER_HTML = str(s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, 'LOWER_HTML']))['Body'].read(), 'utf-8')
+    LOWER_HTML = str(
+        s3.get_object(
+            Bucket=BUCKET, Key='/'.join(
+                [AUX_FILES_PREFIX, 'LOWER_HTML']))['Body'].read(), 'utf-8')
 
     MID_HTML = ""
 
     for image in images:
-        MID_HTML += "<div class='image'><a href='"+'/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image])+"'data-lightbox='MLP'><img src='"+'/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image])+"'></a></div>"
+        MID_HTML += "<div class='image'><a href='" + '/'.join([
+            URL_PREFIX, IMAGE_KEY_PREFIX, image
+        ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
+            [URL_PREFIX, IMAGE_KEY_PREFIX, image]) + "'></a></div>"
 
     page = UPPER_HTML + MID_HTML + LOWER_HTML
     return page
