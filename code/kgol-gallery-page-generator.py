@@ -30,7 +30,7 @@ def parse_tags_from_event(event):
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
     pTags, nTags = [], []
-    allTags = event['tags'].split('%2C%20')
+    allTags = event['tags'].split(' ')
     for tag in allTags:
         if tag != '':
             if tag[0] == '-':
@@ -111,25 +111,39 @@ def generate_page(images):
                 [AUX_FILES_PREFIX, 'IMAGES_TO_END']))['Body'].read(), 'utf-8')
 
     page = START_TO_TAGS + TAGS_HTML + TAGS_TO_IMAGES + IMAGES_HTML + IMAGES_TO_END
+
     return page
 
 
 def lambda_handler(event, context):
     print(json.dumps(event))
 
-    # get tags from query
-    [pTags, nTags] = parse_tags_from_event(event)
+    try:
+        # get tags from query
+        [pTags, nTags] = parse_tags_from_event(event)
 
-    # get image names from dynamodb
-    images = get_images_from_tags(pTags, nTags)
+        # get image names from dynamodb
+        images = get_images_from_tags(pTags, nTags)
 
-    # generate a page
-    page = generate_page(images)
+        # generate a page
+        page = generate_page(images)
 
-    # serve the page
-    s3.put_object(Bucket = 'kgol-image-gallery',
-        Key = 'page.html',
-        Body = str(page)
-    )
+        # serve the page
+        s3.put_object(Bucket = 'kgol-image-gallery',
+            Key = 'page.html',
+            Body = str(page)
+        )
 
-    return 'Error Free Execution'
+        return str(page)
+
+    except Exception as e:
+        errPage = """<!DocType html>
+            <body>
+                <script>
+                    window.location = 'https://gallery.kgol.xyz/search';
+                </script>
+            </body>
+            """
+        print('ERROR OCCURED')
+        print(e)
+        return(errPage)
