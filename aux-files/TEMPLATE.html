@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MLP Image Gallery</title>
+    <link rel="stylesheet" type="text/css" href="https://s3-ap-southeast-2.amazonaws.com/kgol-image-gallery/aux-files/css/generator.css">
+    <link href="https://s3-ap-southeast-2.amazonaws.com/kgol-image-gallery/aux-files/css/lightbox.css" rel="stylesheet">
+    <script src="https://s3-ap-southeast-2.amazonaws.com/kgol-image-gallery/aux-files/js/lightbox-plus-jquery.js"></script>
+</head>
+
+<body>
+    <div class="main">
+        <div class="search-container">
+            <div class="search">
+                <form action="search">
+                    SEARCH:
+                    <br>
+                    <input type="text" name="tags" class="search-input" value="<+CURTAGS+>">
+                </form>
+                <br>
+                <+ALLTAGS+>
+                    <br>
+            </div>
+        </div>
+
+        <div class="slide-container-container">
+            <div class="slide-container">
+                <input type="range" min="100" max="1200" value="250" class="slider" id="myRange">
+                <div id="slider-value"></div>
+            </div>
+        </div>
+        <div class="gallery-loading" id="gallery-loading">
+            <img src="https://s3-ap-southeast-2.amazonaws.com/kgol-image-gallery/aux-files/images/loading.gif" alt="LOADING">
+        </div>
+        <div class="gallery-container" id='Gallery'>
+            <div class="gallery grid">
+                <+IMAGES+>
+            </div>
+        </div>
+    </div>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/4.1.1/imagesloaded.pkgd.min.js'></script>
+    <script src="https://s3-ap-southeast-2.amazonaws.com/kgol-image-gallery/aux-files/js/masonry.js"></script>
+</body>
+
+</html>

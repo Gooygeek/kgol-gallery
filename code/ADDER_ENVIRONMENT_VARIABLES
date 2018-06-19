@@ -2,6 +2,7 @@ BUCKET             = kgol-image-gallery
 LIST_OF_TAGS       = TagList.txt
 PUT_KEY_PRFIX      = images
 WATCH_KEY_PREFIX   = watch-folder
+AUX_FILES_PREFIX   = aux-files
 RANDOM_NAME_LENGTH = 32
 TABLE              = kgol-gallery-tags
 VERBOSE_LOGGING    = True
