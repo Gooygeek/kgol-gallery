@@ -40,6 +40,24 @@ def parse_tags_from_event(event):
     return [pTags, nTags]
 
 
+def neutralise_tag(tagName):
+    """
+    Appends '_dbSafe' to the end of the tag so it can be used in DynamoDB and can be searched
+        Note that the searched tags must also be neutralisted
+
+        SUPER IMPORTANT: THIS WILL NOT WORK FOR NUMBERS
+
+    Inputs:
+        tagName - [String] - The original tag name that is potentially dangerous to use,
+        hence it's getting neutralised
+
+    Outputs:
+        neutralisedTagName - [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
+    """
+    neutralisedTagName = ''.join([str(tagName), '_dbSafe'])
+    return neutralisedTagName
+
+
 def get_images_from_tags(pTags, nTags):
     """
     Queries the dynamodb table for images based on the passed tags.
@@ -52,10 +70,12 @@ def get_images_from_tags(pTags, nTags):
 
     filterExpressionString = ""
     for pTag in pTags:
-        filterExpressionString += "attribute_exists(%s) and " % pTag
+        neutralisedTag = neutralise_tag(pTag)
+        filterExpressionString += "attribute_exists({TAG}) and ".format(TAG=neutralisedTag)
     for nTag in nTags:
-        filterExpressionString += "attribute_not_exists(%s) and" % nTag[1:]
-    filterExpressionString = filterExpressionString[:-4]
+        neutralisedTag = neutralise_tag(nTag)
+        filterExpressionString += "attribute_not_exists({TAG}) and ".format(TAG=neutralisedTag[1:])
+    filterExpressionString = filterExpressionString[:-5]
     if filterExpressionString != '':
         imagesResponse = dynamodb.scan(
             TableName=TABLE, FilterExpression=filterExpressionString)['Items']
@@ -68,7 +88,7 @@ def get_images_from_tags(pTags, nTags):
     return images
 
 
-def generate_page(images):
+def generate_page(images, allTags):
     """
     Generates a page containing the images provided
 
@@ -78,26 +98,38 @@ def generate_page(images):
     Outputs:
         page [string] - An HTML page
     """
-    START_TO_TAGS = str(
+
+    TEMPLATE = str(
         s3.get_object(
             Bucket=BUCKET, Key='/'.join(
-                [AUX_FILES_PREFIX, 'START_TO_TAGS']))['Body'].read(), 'utf-8')
+                [AUX_FILES_PREFIX, 'TEMPLATE.html']))['Body'].read(), 'utf-8')
 
-    TAGS_HTML = ""
+    #
+    splitPage = TEMPLATE.split('<+CURTAGS+>')
+    CURTAGS_HTML = ''
+
+    for tag in allTags:
+        CURTAGS_HTML += '{TAG} '.format(TAG=tag)
+    CURTAGS_HTML = CURTAGS_HTML[:-1]
+
+    TEMPLATE = ''.join([splitPage[0], CURTAGS_HTML, splitPage[1]])
+
+    #
+    splitPage = TEMPLATE.split('<+ALLTAGS+>')
+    ALLTAGS_HTML = ''
 
     encodedTagsList = s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]))['Body']
 
     tagList = ast.literal_eval(str(encodedTagsList.read(), 'utf-8'))
 
     for tag in tagList:
-        TAGS_HTML += "<div class='tag-item'>" + str(tag) + "</div>"
+        ALLTAGS_HTML += "<div class='tag-item'>" + str(tag) + "</div>"
 
-    TAGS_TO_IMAGES = str(
-        s3.get_object(
-            Bucket=BUCKET, Key='/'.join(
-                [AUX_FILES_PREFIX, 'TAGS_TO_IMAGES']))['Body'].read(), 'utf-8')
+    TEMPLATE = ''.join([splitPage[0], ALLTAGS_HTML, splitPage[1]])
 
-    IMAGES_HTML = ""
+    #
+    splitPage = TEMPLATE.split('<+IMAGES+>')
+    IMAGES_HTML = ''
 
     for image in images:
         IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
@@ -105,15 +137,12 @@ def generate_page(images):
         ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
             [URL_PREFIX, IMAGE_KEY_PREFIX, image]) + "'></a></div>"
 
-    IMAGES_TO_END = str(
-        s3.get_object(
-            Bucket=BUCKET, Key='/'.join(
-                [AUX_FILES_PREFIX, 'IMAGES_TO_END']))['Body'].read(), 'utf-8')
+    TEMPLATE = ''.join([splitPage[0], IMAGES_HTML, splitPage[1]])
 
-    page = START_TO_TAGS + TAGS_HTML + TAGS_TO_IMAGES + IMAGES_HTML + IMAGES_TO_END
+    #
+    page = TEMPLATE
 
     return page
-
 
 def lambda_handler(event, context):
     print(json.dumps(event))
@@ -126,7 +155,7 @@ def lambda_handler(event, context):
         images = get_images_from_tags(pTags, nTags)
 
         # generate a page
-        page = generate_page(images)
+        page = generate_page(images, pTags + nTags)
 
         # serve the page
         s3.put_object(Bucket = 'kgol-image-gallery',

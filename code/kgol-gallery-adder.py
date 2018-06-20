@@ -69,6 +69,8 @@ def parse_name_to_tags(image):
             tags [List][String] - A list of tags taken from the filename.
             image[dotIndex:] [String] - The images file extention (e.g. '.png').
     """
+    # TODO: Handle digits i.e. NO NUMBERS ALLOWED
+
     # Initiate some variables used in the loop and keeping track of special characters
     curCharIndex, curChar = len(image), ''
     slashIndex, dotIndex, notAllFound = 0, 0, True
@@ -128,6 +130,22 @@ def update_tags_list(curTags, newTags):
     return curTags
 
 
+def neutralise_tag(tagName):
+    """
+    Appends '_dbSafe' to the end of the tag so it can be used in DynamoDB and can be searched
+        Note that the searched tags must also be neutralisted
+
+    Inputs:
+        tagName - [String] - The original tag name that is potentially dangerous to use,
+        hence it's getting neutralised
+
+    Outputs:
+        neutralisedTagName - [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
+    """
+    neutralisedTagName = ''.join([tagName, '_dbSafe'])
+    return neutralisedTagName
+
+
 def add_to_db(randomName, tags):
     """
     Add the tags lookup line to the DB for the evaluated image
@@ -138,7 +156,8 @@ def add_to_db(randomName, tags):
     """
     dbTags = {'Id':{'S':str(randomName)}}
     for tag in tags:
-        dbTags[tag]={'S':'Y'}
+        neutralisedTag = neutralise_tag(tag)
+        dbTags[neutralisedTag]={'S':'Y'}
 
     dynamodb.put_item(TableName=TABLE, Item=dbTags)
     if VERBOSE_LOGGING : print("Added: "+randomName+", with tags:"+str(tags)+", to DB.")
@@ -169,7 +188,7 @@ def move_to_s3(image, randomName):
     except:
         if VERBOSE_LOGGING : print("Unable to delete image, rolling back...")
         try:
-            s3.delete_object(Bucket = BUCKET, Key='/'.join([PUT_KEY_PREFIX, randomName])
+            s3.delete_object(Bucket = BUCKET, Key='/'.join([PUT_KEY_PREFIX, randomName]))
             if VERBOSE_LOGGING : print("Done")
         except:
             if VERBOSE_LOGGING : print("Unable to rollback")
@@ -183,6 +202,8 @@ def save_updated_tags_list(curTags):
     Input:
         curTags [List][String] - The list of tags to save
     """
+    # TODO: Sort Alphabetically before saving
+
     s3.put_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]), Body=str(curTags))
     return
 
@@ -197,6 +218,7 @@ def lambda_handler(event, context):
     """
 
     newImages = [image['Key'] for image in get_new_images()]
+
     curTags = get_current_tags()
 
     for image in newImages:
