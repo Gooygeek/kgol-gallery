@@ -49,3 +49,11 @@
     }
 
 })();
+
+function addPTag (tagName) {
+    console.log("adding pTag: "+ tagName);
+}
+
+function addNTag (tagName) {
+    console.log("adding nTag: "+ tagName);
+}

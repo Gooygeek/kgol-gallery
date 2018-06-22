@@ -126,7 +126,7 @@ def generate_page(images, allTags):
                     <button class="add-pTag tag-button" onClick="addPTag('{0}')">
                         +
                     </button>
-                    <button class="add-nTag tag-button" onClick="addNTagt('{0}')">
+                    <button class="add-nTag tag-button" onClick="addNTag('{0}')">
                         &minus;
                     </button>
                 </div>"""
