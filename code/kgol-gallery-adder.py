@@ -14,7 +14,8 @@ import random
 import string
 import ast
 import sys
-import boto3
+import boto3  #pylint: disable=F0401
+
 s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
 
