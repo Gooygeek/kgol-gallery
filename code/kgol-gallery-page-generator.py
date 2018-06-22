@@ -71,10 +71,12 @@ def get_images_from_tags(pTags, nTags):
     filterExpressionString = ""
     for pTag in pTags:
         neutralisedTag = neutralise_tag(pTag)
-        filterExpressionString += "attribute_exists({TAG}) and ".format(TAG=neutralisedTag)
+        filterExpressionString += "attribute_exists({TAG}) and ".format(
+            TAG=neutralisedTag)
     for nTag in nTags:
         neutralisedTag = neutralise_tag(nTag)
-        filterExpressionString += "attribute_not_exists({TAG}) and ".format(TAG=neutralisedTag[1:])
+        filterExpressionString += "attribute_not_exists({TAG}) and ".format(
+            TAG=neutralisedTag[1:])
     filterExpressionString = filterExpressionString[:-5]
     if filterExpressionString != '':
         imagesResponse = dynamodb.scan(
@@ -117,13 +119,25 @@ def generate_page(images, allTags):
     #
     splitPage = TEMPLATE.split('<+ALLTAGS+>')
     ALLTAGS_HTML = ''
+    TAG_HTML = """<div class="tag-item">
+                    <div class="tag-text">
+                        {0}
+                    </div>
+                    <button class="add-pTag tag-button" onClick="addPTag('{0}')">
+                        +
+                    </button>
+                    <button class="add-nTag tag-button" onClick="addNTagt('{0}')">
+                        &minus;
+                    </button>
+                </div>"""
 
-    encodedTagsList = s3.get_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]))['Body']
+    encodedTagsList = s3.get_object(
+        Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]))['Body']
 
     tagList = ast.literal_eval(str(encodedTagsList.read(), 'utf-8'))
 
     for tag in tagList:
-        ALLTAGS_HTML += "<div class='tag-item'>" + str(tag) + "</div>"
+        ALLTAGS_HTML += TAG_HTML.format(str(tag))
 
     TEMPLATE = ''.join([splitPage[0], ALLTAGS_HTML, splitPage[1]])
 
@@ -144,6 +158,7 @@ def generate_page(images, allTags):
 
     return page
 
+
 def lambda_handler(event, context):
     print(json.dumps(event))
 
@@ -158,10 +173,8 @@ def lambda_handler(event, context):
         page = generate_page(images, pTags + nTags)
 
         # serve the page
-        s3.put_object(Bucket = 'kgol-image-gallery',
-            Key = 'page.html',
-            Body = str(page)
-        )
+        s3.put_object(
+            Bucket='kgol-image-gallery', Key='page.html', Body=str(page))
 
         return str(page)
 
@@ -175,4 +188,4 @@ def lambda_handler(event, context):
             """
         print('ERROR OCCURED')
         print(e)
-        return(errPage)
+        return (errPage)
