@@ -1,6 +1,7 @@
 import os
 import json
 import ast
+from random import shuffle
 import boto3  #pylint: disable=F0401
 
 BUCKET = os.environ["BUCKET"]
@@ -117,6 +118,10 @@ def generate_page(images, allTags):
 
     TEMPLATE = ''.join([splitPage[0], CURTAGS_HTML, splitPage[1]])
 
+
+    # TODO: ADD persistant toggle switch
+
+
     #
     splitPage = TEMPLATE.split('<+ALLTAGS+>')
     ALLTAGS_HTML = ''
@@ -169,6 +174,11 @@ def lambda_handler(event, context):
 
         # get image names from dynamodb
         images = get_images_from_tags(pTags, nTags)
+
+
+        # Randomise the image order
+        if (('random' in event) and (event['random'] == 'on')):
+            shuffle(images)
 
         # generate a page
         page = generate_page(images, pTags + nTags)
