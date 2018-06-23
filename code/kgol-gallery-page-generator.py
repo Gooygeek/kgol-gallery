@@ -30,7 +30,8 @@ def parse_tags_from_event(event):
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
     pTags, nTags = [], []
-    allTags = event['tags'].split(' ')
+    # Removes surrounding whitespace, then splits based on spacesand treturns a string
+    allTags = event['tags'].strip().split(' ')
     for tag in allTags:
         if tag != '':
             if tag[0] == '-':

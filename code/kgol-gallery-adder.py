@@ -203,7 +203,8 @@ def save_updated_tags_list(curTags):
     Input:
         curTags [List][String] - The list of tags to save
     """
-    # TODO: Sort Alphabetically before saving
+
+    curTags.sort()
 
     s3.put_object(Bucket=BUCKET, Key='/'.join([AUX_FILES_PREFIX, LIST_OF_TAGS]), Body=str(curTags))
     return
