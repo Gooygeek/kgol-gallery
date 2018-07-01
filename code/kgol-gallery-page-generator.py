@@ -40,11 +40,13 @@ def lambda_handler(event, context):
         images = get_images_from_tags(pTags, nTags)
 
         # Randomise the image order
+        isRandom = False
         if (('queryStringParameters' in event) and (event['queryStringParameters'] != None) and ('random' in event['queryStringParameters']) and (event['queryStringParameters']['random'] == 'on')):
+            isRandom = True
             shuffle(images)
 
         # generate a page
-        page = generate_page(images, pTags + nTags)
+        page = generate_page(images, pTags + nTags, isRandom)
 
         # serve the page
         s3.put_object(
@@ -185,7 +187,7 @@ def neutralise_tag(tagName):
     return neutralisedTagName
 
 
-def generate_page(images, allTags):
+def generate_page(images, allTags, isRandom):
     """
     Generates a page containing the images provided
 
@@ -201,20 +203,16 @@ def generate_page(images, allTags):
             Bucket=BUCKET, Key='/'.join(
                 [AUX_FILES_PREFIX, 'TEMPLATE.html']))['Body'].read(), 'utf-8')
 
-    #
-    splitPage = TEMPLATE.split('<+CURTAGS+>')
+    # Add the tags being searched for into the search field.
     CURTAGS_HTML = ''
-
     for tag in allTags:
         CURTAGS_HTML += '{TAG} '.format(TAG=tag)
     CURTAGS_HTML = CURTAGS_HTML[:-1]
 
-    TEMPLATE = ''.join([splitPage[0], CURTAGS_HTML, splitPage[1]])
+    # Persist randomise checkbox value
+    RANDOM_HTML = 'checked' if isRandom else ''
 
-    # TODO: ADD persistant toggle switch
-
-    #
-    splitPage = TEMPLATE.split('<+ALLTAGS+>')
+    # Generate the List of Tags as HTML
     ALLTAGS_HTML = ''
     TAG_HTML = """<div class="tag-item">
                     <div class="tag-text">
@@ -236,22 +234,16 @@ def generate_page(images, allTags):
     for tag in tagList:
         ALLTAGS_HTML += TAG_HTML.format(str(tag))
 
-    TEMPLATE = ''.join([splitPage[0], ALLTAGS_HTML, splitPage[1]])
-
-    #
-    splitPage = TEMPLATE.split('<+IMAGES+>')
+    # Generate the List of Images as HTML
     IMAGES_HTML = ''
-
     for image in images:
         IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
             URL_PREFIX, IMAGE_KEY_PREFIX, image
         ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
             [URL_PREFIX, IMAGE_KEY_PREFIX, image]) + "'></a></div>"
 
-    TEMPLATE = ''.join([splitPage[0], IMAGES_HTML, splitPage[1]])
-
-    #
-    page = TEMPLATE
+    # Add the elements into the template file
+    page = TEMPLATE.format(CURTAGS=CURTAGS_HTML, RANDOMCHECKED=RANDOM_HTML, ALLTAGS=ALLTAGS_HTML, IMAGES=IMAGES_HTML)
 
     return page
 

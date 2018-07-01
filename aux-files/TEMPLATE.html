@@ -17,14 +17,14 @@
             <div class="search">
               <form class="search-form" action="search">
                 <div class="search-form-grid">
-                  <input id="search-input" type="text" name="tags" class="search-input" value="<+CURTAGS+>">
-                  <div class="randomise-checkbox"><input type="checkbox" name="random">Randomise</div>
+                  <input id="search-input" type="text" name="tags" class="search-input" value="{CURTAGS}">
+                  <div class="randomise-checkbox"><input type="checkbox" name="random" {RANDOMCHECKED}>Randomise</div>
                   <button type="button" class="clear-button" onClick="clear_search()">Clear</button>
                   <button type="submit" class="search-button">Search</button>
                 </div>
               </form>
               <br>
-              <+ALLTAGS+>
+              {ALLTAGS}
                 <br>
             </div>
           </div>
@@ -40,7 +40,7 @@
         </div>
         <div class="gallery-container" id='Gallery'>
             <div class="gallery grid">
-                <+IMAGES+>
+                {IMAGES}
             </div>
         </div>
     </div>
