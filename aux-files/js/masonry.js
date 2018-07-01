@@ -52,7 +52,6 @@
 
 function addPTag(tagName) {
     console.log("adding pTag: " + tagName);
-    var tag = event.target;
     var tagList = document.getElementById("search-input");
 
     res = tagList.value.search(tagName);
@@ -68,7 +67,6 @@ function addPTag(tagName) {
 
 function addNTag(tagName) {
     console.log("adding nTag: " + tagName);
-    var tag = event.target;
     var tagList = document.getElementById("search-input");
 
     res = tagList.value.search("-" + tagName);

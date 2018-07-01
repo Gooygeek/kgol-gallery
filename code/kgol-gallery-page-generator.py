@@ -19,7 +19,100 @@ s3 = boto3.client('s3')
 dynamodb = boto3.client('dynamodb')
 
 
-def parse_tags_from_event(event):
+def lambda_handler(event, context):
+    print(json.dumps(event))
+
+    try:
+        # Gets the cookie from the headers hence getting various information
+        Cookies = get_cookies(event)
+
+        # Determine authorisation
+        if Cookies['authorisation'] == 'no':
+            return (generate_unauthorised_response())
+
+        # get tags from query
+        if ('queryStringParameters' in event) and (event['queryStringParameters'] != None) and ('tags' in event['queryStringParameters']):
+            [pTags, nTags] = parse_tags(event['queryStringParameters']['tags'])
+        else:
+            pTags, nTags = [], []
+
+        # get image names from dynamodb
+        images = get_images_from_tags(pTags, nTags)
+
+        # Randomise the image order
+        if (('queryStringParameters' in event) and (event['queryStringParameters'] != None) and ('random' in event['queryStringParameters']) and (event['queryStringParameters']['random'] == 'on')):
+            shuffle(images)
+
+        # generate a page
+        page = generate_page(images, pTags + nTags)
+
+        # serve the page
+        s3.put_object(
+            Bucket='kgol-image-gallery', Key='page.html', Body=str(page))
+
+        response = {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Set-Cookie': 'JWT=PLACE.HOLDER'
+            },
+            'body': str(page)
+        }
+        return (response)
+
+    except Exception as e:
+        print('ERROR OCCURED')
+        print(e)
+        return (generate_error_page())
+
+
+def get_cookies(event):
+    """
+    gets the cookies
+
+    Inputs:
+        event - [Dict.] - The HTTP request data
+
+    Output:
+        Cookies - [Dict.] - The parsed data from the request
+    """
+    # TODO: USE JWT
+    Cookies = {}
+
+    if ('headers' in event) and ('Cookie' in event['headers']):
+        rawCookie = event['headers']['Cookie']
+        listOfCookies = rawCookie.split(';')
+        for cookie in listOfCookies:
+            parts = cookie.strip().split('=')
+            Cookies[parts[0]] = parts[1]
+
+    return Cookies
+
+
+def generate_unauthorised_response():
+    """
+    Used to generate a page when the Authorisation fails
+
+    Output:
+        response - [Dict.] - The HTTP response (includes the page and headers)
+    """
+
+    unAuthPage = """<!DocType html>
+    <body>
+        NOT AUTHORISED
+    </body>
+    """
+    response = {
+        'statusCode': 404,
+        'headers': {
+            'Content-Type': 'text/html; charset=utf-8'
+        },
+        'body': str(unAuthPage)
+    }
+    return (response)
+
+
+def parse_tags(tagString):
     """
     Gets a list of positive and negative tags from the search query
 
@@ -31,8 +124,8 @@ def parse_tags_from_event(event):
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
     """
     pTags, nTags = [], []
-    # Removes surrounding whitespace, then splits based on spacesand treturns a string
-    allTags = event['tags'].strip().split(' ')
+    # Removes surrounding whitespace, then splits based on spaces and returns a list
+    allTags = tagString.strip().split(' ')
     for tag in allTags:
         if tag != '':
             if tag[0] == '-':
@@ -40,24 +133,6 @@ def parse_tags_from_event(event):
             else:
                 pTags.append(tag[:])
     return [pTags, nTags]
-
-
-def neutralise_tag(tagName):
-    """
-    Appends '_dbSafe' to the end of the tag so it can be used in DynamoDB and can be searched
-        Note that the searched tags must also be neutralisted
-
-        SUPER IMPORTANT: THIS WILL NOT WORK FOR NUMBERS
-
-    Inputs:
-        tagName - [String] - The original tag name that is potentially dangerous to use,
-        hence it's getting neutralised
-
-    Outputs:
-        neutralisedTagName - [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
-    """
-    neutralisedTagName = ''.join([str(tagName), '_dbSafe'])
-    return neutralisedTagName
 
 
 def get_images_from_tags(pTags, nTags):
@@ -92,6 +167,24 @@ def get_images_from_tags(pTags, nTags):
     return images
 
 
+def neutralise_tag(tagName):
+    """
+    Appends '_dbSafe' to the end of the tag so it can be used in DynamoDB and can be searched
+        Note that the searched tags must also be neutralisted
+
+        SUPER IMPORTANT: THIS WILL NOT WORK FOR NUMBERS
+
+    Inputs:
+        tagName - [String] - The original tag name that is potentially dangerous to use,
+        hence it's getting neutralised
+
+    Outputs:
+        neutralisedTagName - [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
+    """
+    neutralisedTagName = ''.join([str(tagName), '_dbSafe'])
+    return neutralisedTagName
+
+
 def generate_page(images, allTags):
     """
     Generates a page containing the images provided
@@ -118,9 +211,7 @@ def generate_page(images, allTags):
 
     TEMPLATE = ''.join([splitPage[0], CURTAGS_HTML, splitPage[1]])
 
-
     # TODO: ADD persistant toggle switch
-
 
     #
     splitPage = TEMPLATE.split('<+ALLTAGS+>')
@@ -165,38 +256,17 @@ def generate_page(images, allTags):
     return page
 
 
-def lambda_handler(event, context):
-    print(json.dumps(event))
-
-    try:
-        # get tags from query
-        [pTags, nTags] = parse_tags_from_event(event)
-
-        # get image names from dynamodb
-        images = get_images_from_tags(pTags, nTags)
-
-
-        # Randomise the image order
-        if (('random' in event) and (event['random'] == 'on')):
-            shuffle(images)
-
-        # generate a page
-        page = generate_page(images, pTags + nTags)
-
-        # serve the page
-        s3.put_object(
-            Bucket='kgol-image-gallery', Key='page.html', Body=str(page))
-
-        return str(page)
-
-    except Exception as e:
-        errPage = """<!DocType html>
-            <body>
-                <script>
-                    window.location = 'https://gallery.kgol.xyz/search';
-                </script>
-            </body>
-            """
-        print('ERROR OCCURED')
-        print(e)
-        return (errPage)
+def generate_error_page():
+    errPage = """<!DocType html>
+        <body>
+            INTERNAL SERVER ERROR
+        </body>
+        """
+    response = {
+        'statusCode': 502,
+        'headers': {
+            'Content-Type': 'text/html; charset=utf-8'
+        },
+        'body': str(errPage)
+    }
+    return response
