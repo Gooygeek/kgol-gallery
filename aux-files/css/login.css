@@ -1,0 +1,34 @@
+.login-container {
+    padding: 2em;
+    margin: auto;
+    width: 50%;
+    background-color: #edbc64;
+    border-radius: 25px;
+}
+
+.login {
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-row-gap: 10px;
+    width: 80%;
+    margin: auto;
+    font-size: 1.5em;
+}
+
+.login-field {
+    align-self: center;
+    width: auto;
+    font-size: 1.5em;
+}
+
+.submit-button {
+    width: 60px;
+    right: 0;
+    justify-self: right;
+}
+
+.main {
+    padding-top: 2em;
+    padding-bottom: 2em;
+    font-size: 100%;
+}
