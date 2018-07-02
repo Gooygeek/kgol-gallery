@@ -108,7 +108,7 @@ def generate_unauthorised_response():
     </body>
     """
     response = {
-        'statusCode': 404,
+        'statusCode': 401,
         'headers': {
             'Content-Type': 'text/html; charset=utf-8'
         },
@@ -148,6 +148,9 @@ def get_images_from_tags(pTags, nTags):
     Inputs:
         pTags [List] - The tags that an image MUST have
         nTags [List] - The tags that are explicity excluded (an image must NOT have)
+
+    Output:
+        imageList [List][Dict.] - The images and there associated tags
     """
 
     filterExpressionString = ""
@@ -166,13 +169,18 @@ def get_images_from_tags(pTags, nTags):
     else:
         imagesResponse = dynamodb.scan(TableName=TABLE)['Items']
 
-    images = []
+    imageList = []
     for item in imagesResponse:
-        images.append(item['Id']['S'])
-    return images
+        # Sets the ID and tag keys for the image object. Note the use of unpack into a list literal to generate the keys list, then remove the redundant 'Id' item.
+        # https://stackoverflow.com/a/45253740
+        keysList = [*item]
+        keysList.remove('Id')
+        Image = {'ID': item['Id']['S'], 'tags': keysList}
+        imageList.append(Image)
+    return imageList
 
 
-def neutralise_tag(tagName):
+def neutralise_tag(tagName, reverse=False):
     """
     Appends '_dbSafe' to the end of the tag so it can be used in DynamoDB and can be searched
         Note that the searched tags must also be neutralisted
@@ -180,14 +188,21 @@ def neutralise_tag(tagName):
         SUPER IMPORTANT: THIS WILL NOT WORK FOR NUMBERS
 
     Inputs:
-        tagName - [String] - The original tag name that is potentially dangerous to use,
+        tagName [String] - The original tag name that is potentially dangerous to use,
         hence it's getting neutralised
+        reverse [Bool] - Should the tag have the safety string removed?
 
     Outputs:
-        neutralisedTagName - [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
+        neutralisedTagName [String] - A string that is predicatable and guaranteed to not conflict with DynamoDB Reserved words
+        OR
+        deneutralisedTagName [String] - A string that has had the neutralising appendage removed
     """
-    neutralisedTagName = ''.join([str(tagName), '_dbSafe'])
-    return neutralisedTagName
+    if not reverse:
+        neutralisedTagName = ''.join([str(tagName), '_dbSafe'])
+        return neutralisedTagName
+    else:
+        deneutralisedTagName = tagName.replace('_dbSafe', '')
+        return deneutralisedTagName
 
 
 def generate_page(images, allTags, isRandom):
@@ -240,10 +255,16 @@ def generate_page(images, allTags, isRandom):
     # Generate the List of Images as HTML
     IMAGES_HTML = ''
     for image in images:
-        IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
-            URL_PREFIX, IMAGE_KEY_PREFIX, image
-        ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
-            [URL_PREFIX, IMAGE_KEY_PREFIX, image]) + "'></a></div>"
+        IMAGES_HTML += "<div class='image item'><a href='{HREF}' data-lightbox='MLP' data-title='Tags: {TAGS}'><img src='{SRC}'></a></div>".format(
+            HREF='/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]),
+            SRC='/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]),
+            TAGS=', '.join(neutralise_tag(tag, reverse=True) for tag in image['tags'])
+        )
+
+        # IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
+        #     URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']
+        # ]) + "'data-lightbox='MLP'><img src='" + '/'.join(
+        #     [URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]) + "'></a></div>"
 
     # Add the elements into the template file
     page = TEMPLATE.format(CURTAGS=CURTAGS_HTML, RANDOMCHECKED=RANDOM_HTML, ALLTAGS=ALLTAGS_HTML, IMAGES=IMAGES_HTML)
@@ -258,7 +279,7 @@ def generate_error_page():
         </body>
         """
     response = {
-        'statusCode': 502,
+        'statusCode': 500,
         'headers': {
             'Content-Type': 'text/html; charset=utf-8'
         },
