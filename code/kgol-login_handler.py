@@ -20,7 +20,10 @@ def lambda_handler(event, context):
         """
     else:
         setAuth = 'no'
-        page = str(s3.get_object(Bucket='kgol-image-gallery', Key='aux-files/LOGIN_PAGE.html')['Body'].read(), 'utf8')
+        page = str(s3.get_object(
+            Bucket='kgol-image-gallery',
+            Key='aux-files/LOGIN_PAGE.html')['Body'].read(), 'utf8'
+            )
 
     response = {
         'statusCode': 200,
