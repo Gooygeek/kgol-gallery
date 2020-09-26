@@ -31,7 +31,9 @@ def lambda_handler(event, context):
             return (generate_unauthorised_response())
 
         # get tags from query
-        if ('queryStringParameters' in event) and (event['queryStringParameters'] != None) and ('tags' in event['queryStringParameters']):
+        if (('queryStringParameters' in event)
+                and (event['queryStringParameters'] != None)
+                and ('tags' in event['queryStringParameters'])):
             [pTags, nTags] = parse_tags(event['queryStringParameters']['tags'])
         else:
             pTags, nTags = [], []
@@ -41,7 +43,10 @@ def lambda_handler(event, context):
 
         # Randomise the image order
         isRandom = False
-        if (('queryStringParameters' in event) and (event['queryStringParameters'] != None) and ('random' in event['queryStringParameters']) and (event['queryStringParameters']['random'] == 'on')):
+        if (('queryStringParameters' in event)
+                and (event['queryStringParameters'] != None)
+                and ('random' in event['queryStringParameters'])
+                and (event['queryStringParameters']['random'] == 'on')):
             isRandom = True
             shuffle(images)
 
@@ -81,7 +86,7 @@ def get_cookies(event):
     # TODO: USE JWT
     Cookies = {}
 
-    if ('headers' in event) and ('Cookie' in event['headers']):
+    if (('headers' in event) and ('Cookie' in event['headers'])):
         rawCookie = event['headers']['Cookie']
         listOfCookies = rawCookie.split(';')
         for cookie in listOfCookies:
@@ -258,8 +263,8 @@ def generate_page(images, allTags, isRandom):
         IMAGES_HTML += "<div class='image item'><a href='{HREF}' data-lightbox='MLP' data-title='Tags: {TAGS}'><img src='{SRC}'></a></div>".format(
             HREF='/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]),
             SRC='/'.join([URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]),
-            TAGS=', '.join(neutralise_tag(tag, reverse=True) for tag in image['tags'])
-        )
+            TAGS=', '.join(
+                neutralise_tag(tag, reverse=True) for tag in image['tags']))
 
         # IMAGES_HTML += "<div class='image item'><a href='" + '/'.join([
         #     URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']
@@ -267,7 +272,11 @@ def generate_page(images, allTags, isRandom):
         #     [URL_PREFIX, IMAGE_KEY_PREFIX, image['ID']]) + "'></a></div>"
 
     # Add the elements into the template file
-    page = TEMPLATE.format(CURTAGS=CURTAGS_HTML, RANDOMCHECKED=RANDOM_HTML, ALLTAGS=ALLTAGS_HTML, IMAGES=IMAGES_HTML)
+    page = TEMPLATE.format(
+        CURTAGS=CURTAGS_HTML,
+        RANDOMCHECKED=RANDOM_HTML,
+        ALLTAGS=ALLTAGS_HTML,
+        IMAGES=IMAGES_HTML)
 
     return page
 
